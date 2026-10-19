@@ -1,0 +1,188 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Air-Core Reactor PD Monitoring</title><style>
+:root{font-family:Inter,Segoe UI,Arial,sans-serif;color:#e3f0fb;background:#07111f}*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07111f}
+#viewport{position:fixed;inset:0;overflow:hidden}.shell{position:absolute;top:0;left:0;width:1920px;height:1080px;padding:26px 34px;display:flex;flex-direction:column;gap:18px;transform-origin:top left}
+.header{height:66px;flex:none;display:flex;align-items:center}.brand{font-size:36px;letter-spacing:.015em;font-weight:850}
+.grid{flex:1;min-height:0;display:grid;grid-template-columns:730px minmax(0,1fr);grid-template-rows:minmax(0,1fr) 268px;gap:18px}
+.panel{min-width:0;min-height:0;overflow:hidden;background:#0e2032;border:1px solid #2a455c;border-radius:12px;padding:22px 26px}
+.map-panel{display:flex;flex-direction:column}.mapwrap{flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;padding-top:0}.mapwrap svg{max-height:100%}.mapwrap svg{height:100%;width:100%;transform:translateY(-24px) scale(1.04);transform-origin:center center}
+.title{font-size:24px;font-weight:800;letter-spacing:.015em;text-transform:uppercase;color:#c9e4f6;margin-bottom:10px}
+.legend{display:flex;gap:28px;font-size:21px;color:#d1e3f1;align-items:center;padding:8px 4px}
+.dot{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:8px}
+.metric{background:#122b42;border:1px solid #31516b;border-radius:10px;padding:13px 17px;margin-bottom:9px}
+.metric .small{font-size:19px;color:#aac8dc}.metric .value{font-size:23px;font-weight:850;margin-top:3px}
+.mini,.chartlabel,.condition-meta{font-size:18px;color:#a9c8dc;line-height:1.3}.bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.condition-chart{height:128px;margin:1px 0}.condition-chart svg{height:100%;width:100%;display:block}
+.wave-panel{height:126px;background:#0a1b2b;border:1px solid #30516b;border-radius:7px;overflow:hidden}.wave-panel svg{height:100%;width:100%;display:block}
+.events{grid-column:1/-1;display:flex;flex-direction:column}.event-list{display:flex;flex-direction:column;gap:0;flex:1;min-height:0;overflow:hidden;background:#0b1b2a;border:1px solid #31516b;border-radius:7px}
+.event{display:grid;grid-template-columns:205px 150px minmax(0,1fr) 110px 115px;align-items:center;gap:15px;padding:5px 20px;border-bottom:1px solid #27465c;font-size:19px;height:45px;min-height:45px}.event:last-child{border-bottom:0}.event .time{font-size:19px;color:#71d2f5;font-family:Consolas,monospace;font-weight:700}.event .kind{font-weight:700}.event .loc{font-size:19px;color:#b8d3e6}.event .type{font-size:19px;color:#7ce0ed;font-weight:700}.security{height:36px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:4px 14px;border:1px solid #30516b;border-radius:7px;background:#10283e;font-size:16px;color:#b7d3e5}.security b{color:#81d2f3}
+.tag{display:none}.footer{display:none;height:0;flex:none;background:#10283e;border:1px solid #30516b;border-radius:8px;padding:11px 16px;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-strip{display:flex;gap:14px;align-items:stretch;margin-top:8px}.status-strip .metric{flex:1;margin:0}
+</style></head><body><div id="viewport"><main class="shell">
+<header class="header"><div class="brand">AIR CORE REACTOR <span style="color:#5bc9f2">PD CONDITION MONITOR - LIVE OUTPUT</span></div></header>
+<section class="grid">
+<article class="panel map-panel"><div class="title">Reactor sensor array</div><div class="mapwrap"><svg id="reactor" viewBox="0 0 500 500" aria-label="Nine outer surface AE sensors and six microphones below the outside bottom rim"></svg></div><div class="legend"><span><i class="dot" style="background:#f7ba5d"></i>AE sensors (9)</span><span><i class="dot" style="background:#62d9f4;border-radius:2px"></i>Microphones (6)</span><span style="color:#f7ba5d">◎ Active AE</span><span style="color:#62d9f4">▣ Active MIC</span></div></article>
+<article class="panel"><div class="title">Reactor condition assessment</div>
+<div class="status-strip"><div class="metric" style="flex:0 0 35%;padding:9px 15px"><div class="small">Latest acoustic event</div><div class="value" id="location">MONITORING</div><div class="mini" id="confidence" style="font-size:15px">Awaiting events</div></div><div class="metric" style="flex:1;padding:9px 15px"><div class="small" style="color:#f4c27b;font-weight:800">ENGINEERING STATUS</div><div id="advisory" class="mini" style="font-size:17px;line-height:1.25">Loading synthetic observations…</div></div></div>
+<div class="title" style="margin-top:5px">Seven-day activity trend</div><div class="condition-chart" id="daily"></div><div class="condition-meta" id="baseline">Collecting baseline</div>
+<div class="title" style="margin-top:7px">Latest acoustic waveform <span id="wave-sensor" style="color:#65c8ef;font-size:20px;margin-left:12px">SENSOR —</span></div><div class="wave-panel"><svg id="waveform" viewBox="0 0 640 140" preserveAspectRatio="none"></svg></div>
+<div class="chartlabel" id="wave-meta" style="margin-top:4px;font-size:16px;line-height:1.25">Waiting for a PD-like transient</div>
+<div style="display:none"><span id="trendstate"></span><span id="trenddetail"></span></div>
+</article>
+<article class="panel events"><div style="display:flex;justify-content:space-between;align-items:center;gap:20px"><div class="title" style="margin-bottom:5px">Recent PD activity · event terminal</div><div style="display:flex;gap:20px;font-size:20px"><span>Operator action: <strong id="action" style="color:#ffc36b">MONITOR</strong></span><span>Channels: <strong>9 AE + 6 MIC</strong></span></div></div><div class="event-list"><div class="event" style="background:#18344b;font-weight:800;color:#92b9d1;height:30px;min-height:30px;padding-top:3px;padding-bottom:3px;font-size:16px"><span>UTC TIME</span><span>DETECTED BY</span><span>RESPONDING CHANNELS</span><span>CHANNELS</span><span>RF SCORE</span></div><div id="events" style="flex:1;min-height:0"></div></div></article>
+</section><div class="security"><span><b>SECURE DATA PATH</b> · Authenticated devices · Encrypted Ethernet · Station time (PTP)</span><span>IEC 62351 / IEC 62443 · IEC 61850 · COMTRADE · IEC 61000-6-5</span></div>
+</main></div>
+<script>
+const svg=document.getElementById('reactor');const NS='http://www.w3.org/2000/svg';let latest=null;
+function node(tag,attrs,parent=svg){const el=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));parent.appendChild(el);return el}
+function txt(x,y,value,size=13,color='#b9d4e5',anchor='start',weight='500'){const t=node('text',{x,y,fill:color,'font-size':size,'font-weight':weight,'text-anchor':anchor});t.textContent=value;return t}
+let viewAngle=0.52;
+// Orthographic projection of a single annular cylinder. All geometry and sensor
+// locations share this transform; azimuth rotation never changes ring geometry.
+function point(r,a,z){const t=a+viewAngle;return {x:250+r*Math.cos(t),y:260+0.36*r*Math.sin(t)-z,depth:Math.sin(t)};}
+function arcPath(r,z,front){let d='';const n=90;for(let i=0;i<=n;i++){const a=(front?0:Math.PI)+Math.PI*i/n-viewAngle;const q=point(r,a,z);d+=(i?'L':'M')+q.x.toFixed(2)+','+q.y.toFixed(2)}return d;}
+function ringPath(r,z){let d='';for(let i=0;i<=120;i++){const q=point(r,2*Math.PI*i/120,z);d+=(i?'L':'M')+q.x.toFixed(2)+','+q.y.toFixed(2)}return d+'Z';}
+function strokeArc(r,z,front,color,opacity,width=1){node('path',{d:arcPath(r,z,front),fill:'none',stroke:color,'stroke-width':width,opacity});}
+function draw(){
+ svg.replaceChildren();svg.setAttribute('viewBox','10 45 480 430');
+ const Ro=188,Ri=110,top=102,bottom=-102;
+ const ae=latest?.amplitudes||Array(9).fill(0),det=latest?.detected||Array(9).fill(false);
+ const mic=latest?.evidence?.mic_amplitudes||Array(6).fill(0),md=latest?.evidence?.mic_detected||Array(6).fill(false);
+ const peakAE=Math.max(.0001,...ae),peakMIC=Math.max(.0001,...mic);
+ // Back half of the outer wall, and the interior of the hollow bore.
+ const backTopL=point(Ro,Math.PI-viewAngle,top),backTopR=point(Ro,-viewAngle,top);
+ const backBotL=point(Ro,Math.PI-viewAngle,bottom),backBotR=point(Ro,-viewAngle,bottom);
+ node('path',{d:`${arcPath(Ro,top,false)} L${backBotR.x},${backBotR.y} ${arcPath(Ro,bottom,false).match(/[ML][^ML]+/g).reverse().map(v=>'L'+v.slice(1)).join(' ')} Z`,fill:'#345a75','fill-opacity':'.12'});
+ // Visible inner wall: a darker, recessed cavity, not another floating cylinder.
+ const iLT=point(Ri,Math.PI-viewAngle,top),iRT=point(Ri,-viewAngle,top);
+ const iLB=point(Ri,Math.PI-viewAngle,bottom),iRB=point(Ri,-viewAngle,bottom);
+ node('path',{d:`${arcPath(Ri,top,false)} L${iRB.x},${iRB.y} ${arcPath(Ri,bottom,false).match(/[ML][^ML]+/g).reverse().map(v=>'L'+v.slice(1)).join(' ')} Z`,fill:'#071827','fill-opacity':'.58'});
+ // Back sensor nodes are deliberately muted to preserve depth perception.
+ const items=[];
+ const aeAngles=[[0,120,240],[40,160,280],[80,200,320]];
+ for(let k=0;k<3;k++)for(let j=0;j<3;j++){
+  const idx=k*3+j,angle=aeAngles[k][j]*Math.PI/180;
+  const q=point(Ro,angle,bottom+(k+1)*(top-bottom)/4);
+  items.push({q,id:`AE-${String(idx+1).padStart(2,'0')}`,mic:false,am:ae[idx]||0,on:!!det[idx],peak:peakAE});
+ }
+ for(let j=0;j<6;j++){
+  const q=point(Ro,j*Math.PI/3,bottom);
+  items.push({q,id:`MIC-${String(j+1).padStart(2,'0')}`,mic:true,am:mic[j]||0,on:!!md[j],peak:peakMIC});
+ }
+ function sensors(front){for(const item of items.filter(i=>(i.q.depth>=0)===front)){
+  const {q,mic,on,am,peak}=item,hot=on&&am/peak>.22;
+  const fill=mic?'#62d9f4':'#ffc075',opacity=front?1:.68;
+  const shape=mic?node('rect',{x:q.x-8.2,y:q.y-8.2,width:16.4,height:16.4,rx:1,fill,stroke:'#0b1929','stroke-width':1,opacity}):node('circle',{cx:q.x,cy:q.y,r:8.2,fill,stroke:'#0b1929','stroke-width':1,opacity});
+  node('title',{},shape).textContent=`${item.id} · relative response ${am.toFixed(4)}`;
+  if(hot){if(mic)node('rect',{x:q.x-14,y:q.y-14,width:28,height:28,rx:1,fill:'none',stroke:'#5df2ff','stroke-width':3.2,opacity:front?1:.65});else node('circle',{cx:q.x,cy:q.y,r:15,fill:'none',stroke:'#ffb34f','stroke-width':3.2,opacity:front?1:.65});}
+ }}
+ // Only sparse guide arcs: the five AE levels are not physical hoops.
+ for(let k=0;k<3;k++){const z=bottom+(k+1)*(top-bottom)/4;strokeArc(Ro,z,false,'#6b93ac',.22)}
+ sensors(false);
+ // Outer front wall partially occludes rear nodes and creates a single silhouette.
+ const fTL=point(Ro,Math.PI-viewAngle,top),fTR=point(Ro,-viewAngle,top);
+ const fBL=point(Ro,Math.PI-viewAngle,bottom),fBR=point(Ro,-viewAngle,bottom);
+ const frontTop=arcPath(Ro,top,true),frontBottom=arcPath(Ro,bottom,true);
+ const revBottom=frontBottom.match(/[ML][^ML]+/g).reverse().map((v,i)=>'L'+v.slice(1)).join(' ');
+ node('path',{d:`${frontTop} L${fBR.x},${fBR.y} ${revBottom} Z`,fill:'#648da9','fill-opacity':'.20',stroke:'none'});
+ // Bottom annulus is mostly hidden, top annulus defines the visible hollow opening.
+ node('path',{d:ringPath(Ro,bottom)+' '+ringPath(Ri,bottom),fill:'#3a647f','fill-opacity':'.10','fill-rule':'evenodd'});
+ node('path',{d:ringPath(Ro,top)+' '+ringPath(Ri,top),fill:'#7599af','fill-opacity':'.34','fill-rule':'evenodd'});
+ // The bore stays dark, bounded by its own inner rim.
+ node('path',{d:ringPath(Ri,top),fill:'#071827','fill-opacity':'.54'});
+ strokeArc(Ri,top,false,'#91c9c6',.85,1.5);
+ strokeArc(Ri,top,true,'#9fdcd1',.95,1.6);
+ strokeArc(Ro,top,false,'#a6c7d9',.80,1.5);
+ strokeArc(Ro,top,true,'#b9d8e8',.95,1.8);
+ strokeArc(Ro,bottom,false,'#6f93a8',.35);
+ strokeArc(Ro,bottom,true,'#8db7d1',.88,1.6);
+ strokeArc(Ri,bottom,true,'#5faea8',.28);
+ for(let k=0;k<3;k++){const z=bottom+(k+1)*(top-bottom)/4;strokeArc(Ro,z,true,'#7ca8bf',.34)}
+ for(const a of [-viewAngle,Math.PI-viewAngle]){const q=point(Ro,a,top),w=point(Ro,a,bottom);node('line',{x1:q.x,y1:q.y,x2:w.x,y2:w.y,stroke:'#a2c4d7','stroke-width':1.3,opacity:.55});}
+ sensors(true);
+ // Repaint the six bottom-rim microphones above the cylinder surface so that
+ // all six markers remain visible, including those on the far circumference.
+ for(const item of items.filter(i=>i.mic)){
+  const {q,on,am,peak}=item;
+  node('rect',{x:q.x-8.2,y:q.y-8.2,width:16.4,height:16.4,rx:1,
+    fill:'#62d9f4',stroke:'#0b1929','stroke-width':1.2,opacity:q.depth>=0?1:.76});
+  if(on&&am/peak>.22)node('rect',{x:q.x-14,y:q.y-14,width:28,height:28,
+    rx:1,fill:'none',stroke:'#5df2ff','stroke-width':3.2,opacity:1});
+ }
+ // Subtle adjacent sensor IDs, no leader lines. Rear labels are subdued.
+ // Labels follow rotation, and are clipped to the SVG viewport.
+ for(const item of items){
+  const q=item.q, side=q.x<250?-1:1;
+  const color=item.mic?'#7ed5e7':'#edbf84';
+  const labelX=q.x+side*13;
+  const labelY=q.y-11;
+  const t=txt(labelX,labelY,item.id,10.5,color,side<0?'end':'start','600');
+  t.setAttribute('opacity',q.depth>=0?'0.86':'0.62');
+  t.setAttribute('paint-order','stroke');
+  t.setAttribute('stroke','#0e2032');
+  t.setAttribute('stroke-width','2.6');
+  t.setAttribute('stroke-linejoin','round');
+ }
+
+}
+let drag=false,lastX=0;
+svg.style.touchAction='pan-y';
+svg.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;svg.setPointerCapture(e.pointerId)});
+svg.addEventListener('pointermove',e=>{if(!drag)return;viewAngle+=(e.clientX-lastX)*.008;lastX=e.clientX;draw()});
+svg.addEventListener('pointerup',()=>drag=false);svg.addEventListener('pointercancel',()=>drag=false);
+function bars(id,arr,key){const host=document.getElementById(id);host.innerHTML='';const max=Math.max(1,...arr.map(x=>x[key]||0));for(const x of arr){const col=document.createElement('div');col.className='barcol';col.title=`${x.label}: ${x[key]}`;const bar=document.createElement('div');bar.className='bar'+(key==='peak'?' orange':'');bar.style.height=`${Math.max(2,100*(x[key]||0)/max)}%`;col.appendChild(bar);host.appendChild(col)}}
+function uv(id,active){const e=document.getElementById(id);e.className='uv '+(active?'active':'idle');e.textContent=(active?'● ':'○ ')+(id==='uvinner'?'UV-INNER':'UV-OUTER')+' — '+(active?'coincident optical emission':'no coincident emission')}
+function svgEl(parent,tag,attrs){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent.appendChild(e);return e}
+function dailyChart(condition){
+ const host=document.getElementById('daily');host.innerHTML='';const days=condition?.days||[];
+ const chart=svgEl(host,'svg',{viewBox:'0 0 1100 128',preserveAspectRatio:'none',role:'img','aria-label':'Seven-day PD-like events per assumed monitoring hour with historical baseline'});
+ const left=65,right=1060,top=13,bottom=87;
+ const rate=days.map(d=>d.pd_per_hour ?? 0);const base=condition?.baseline_pd_per_hour_illustrative;
+ const max=Math.max(.1,...rate,base||0)*1.16;
+ const X=i=>left+(right-left)*i/Math.max(1,days.length-1),Y=v=>bottom-(bottom-top)*v/max;
+ for(let j=0;j<4;j++){const y=top+(bottom-top)*j/3;svgEl(chart,'line',{x1:left,y1:y,x2:right,y2:y,stroke:'#254359','stroke-width':1});const t=svgEl(chart,'text',{x:53,y:y+5,'text-anchor':'end',fill:'#a8c8dc','font-size':17});t.textContent=(max*(1-j/3)).toFixed(1)}
+ if(base!==null&&base!==undefined){svgEl(chart,'line',{x1:left,y1:Y(base),x2:right,y2:Y(base),stroke:'#f0b764','stroke-width':2,'stroke-dasharray':'7 5'});const t=svgEl(chart,'text',{x:right-6,y:Math.max(18,Y(base)-9),'text-anchor':'end',fill:'#f0b764','font-size':18,'font-weight':'800'});t.textContent='Baseline'}
+ if(days.length){svgEl(chart,'polyline',{points:rate.map((v,i)=>`${X(i)},${Y(v)}`).join(' '),fill:'none',stroke:'#58c5ef','stroke-width':3,'stroke-linejoin':'round'});rate.forEach((v,i)=>{svgEl(chart,'circle',{cx:X(i),cy:Y(v),r:3.7,fill:'#58c5ef'});const t=svgEl(chart,'text',{x:X(i),y:119,'text-anchor':'middle',fill:'#b5d1e3','font-size':17});t.textContent=days[i].label})}
+ document.getElementById('baseline').textContent=base==null?'Baseline: collecting reference data':`Baseline: ${base.toFixed(2)} events/h · Seven-day PD activity`;
+ document.getElementById('trendstate').textContent=condition?.state||'INSUFFICIENT DATA';
+ document.getElementById('trenddetail').textContent=condition?.ratio==null?'No reliable baseline ratio':`Recent/reference ratio: ${condition.ratio.toFixed(2)}× `;
+}
+function drawWave(w){const host=document.getElementById('waveform');host.innerHTML='';
+ for(const y of [35,70,105])svgEl(host,'line',{x1:0,y1:y,x2:640,y2:y,stroke:'#23435b','stroke-width':1});
+ if(!w?.samples?.length){document.getElementById('wave-sensor').textContent='SENSOR —';const t=svgEl(host,'text',{x:320,y:76,'text-anchor':'middle',fill:'#87a6bd','font-size':17});t.textContent='Waiting for detected PD-like waveform';document.getElementById('wave-meta').textContent='Filtered acoustic transient · no current PD-like capture';return}
+ document.getElementById('wave-sensor').textContent=w.sensor+' · STRONGEST CHANNEL';
+ const a=w.samples,peak=Math.max(1e-9,...a.map(Math.abs)),points=a.map((v,i)=>`${(i*639/(a.length-1)).toFixed(2)},${(70-v/peak*54).toFixed(2)}`).join(' ');
+ svgEl(host,'polyline',{points,fill:'none',stroke:'#5bc9f2','stroke-width':1.8});
+ document.getElementById('wave-meta').textContent=`${w.sensor} (strongest responding sensor for this event) · ${a.length} samples · ${(1000*a.length/w.fs).toFixed(2)} ms · filtered amplitude (relative units) · ${w.timestamp.slice(11,23)} UTC`;
+}
+let lastWaveUid=null;
+async function updateWave(){try{const r=await fetch('/api/waveform',{cache:'no-store'});if(!r.ok)throw Error('waveform unavailable');const w=await r.json();if(w.event_uid!==lastWaveUid){drawWave(w);lastWaveUid=w.event_uid||null}}catch(e){document.getElementById('wave-meta').textContent='Waveform stream unavailable'}}
+async function update(){
+ try{
+  const r=await fetch('/api/status',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+  const data=await r.json();latest=data.latest;
+
+
+  document.getElementById('advisory').textContent=data.advisory;
+  const state=data.condition?.state||'monitoring';
+  document.getElementById('action').textContent=/warning/i.test(state)?'SCHEDULE INSPECTION':/watch/i.test(state)?'REVIEW EVENTS':'CONTINUE MONITORING';
+  const ev=latest?.evidence||{};
+  document.getElementById('location').textContent=latest?'PD-LIKE EVENT':'MONITORING';
+  document.getElementById('confidence').textContent=latest?`${latest.timestamp.substring(11,23)} UTC`:'Awaiting acoustic events';
+
+  draw();dailyChart(data.condition);updateWave();
+  const pdEvents=data.events.filter(e=>e.classification==='PD-like');
+  document.getElementById('events').innerHTML=pdEvents.slice(0,3).map(e=>{
+   const ids=[...new Set(e.evidence?.sensor_ids||[])];
+   const ae=ids.filter(x=>x.startsWith('AE-')), mic=ids.filter(x=>x.startsWith('MIC-'));
+   const modes=[ae.length?'AE':'',mic.length?'MIC':''].filter(Boolean).join(' + ');
+   const score=Number.isFinite(e.pd_score)?`${Math.round(e.pd_score*100)}%`:'—';
+   const label=ids.length?ids.join('  ·  '):'—';
+   return `<div class="event"><span class="time">${e.timestamp.substring(11,23)}</span><span class="type">${modes||'—'}</span><span class="kind" style="color:#d9ebf5">${label}</span><span class="loc">${ids.length} / 15</span><span style="color:#8ad8f0;font-weight:700">${score}</span></div>`;
+  }).join('')||'<div class="mini" style="padding:18px">Awaiting PD-like events</div>';
+ }catch(e){document.getElementById('advisory').textContent='Dashboard update error: '+e.message}
+}
+function fitCanvas(){const stage=document.querySelector('.shell');const scale=Math.min(window.innerWidth/1920,window.innerHeight/1080);
+ stage.style.transform=`translate(${Math.max(0,(window.innerWidth-1920*scale)/2)}px,${Math.max(0,(window.innerHeight-1080*scale)/2)}px) scale(${scale})`;}
+window.addEventListener('resize',fitCanvas);fitCanvas();draw();drawWave(null);update();setInterval(update,1000);
+</script></body></html>
